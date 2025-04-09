@@ -1,0 +1,122 @@
+-- Cool Drinks Management SQL Script
+-- 1. Database Creation
+CREATE DATABASE Thumpsup;
+USE Thumpsup;
+-- 2. Table Creation
+-- Customers Table
+CREATE TABLE Customers (
+ customer_id INT AUTO_INCREMENT PRIMARY KEY,name VARCHAR(100) NOT NULL,phone VARCHAR(15) UNIQUE NOT NULL,address TEXT);
+ 
+ insert into  Customers values(01,"Balaji",'8695765864',"01#2-0 Rajampet"),(02,"Sharon",'9942594967',"23/5 kadapa"),
+ (03,"Mani",'7788996655',"25-67 Rajampet"),(04,"srinu",'7788936544',"09/67 kadapa"),(05,"Tamil",'7788994422',"09 sai babatemple road");
+ select*from Customers;
+ 
+-- Suppliers Table
+CREATE TABLE Suppliers (
+ supplier_id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(100) NOT NULL, contact VARCHAR(15), address TEXT);
+ insert into  Suppliers values(101,"Anadh",'8659947499'," 43# Marathahalli"),(102,"Moorthy",'8659223388',"11# Agara"),
+ (103,"Madhu",'7584748333',"1311# Indarnager"),(104,"Divya",'8659757473',"2#22 Marathahalli "),(105,"Priya",'8659947288',"89# BTM Layout");
+ select*from Suppliers;
+
+-- Types of Cooldinks Table
+CREATE TABLE Coldrinks (
+ Coldrink_id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(100) NOT NULL, supplier_id INT, price DECIMAL(10,2) NOT NULL,expiry_date DATE,
+ FOREIGN KEY (supplier_id) REFERENCES Suppliers(supplier_id));
+
+ insert into  Coldrinks values(2334,"Thumsup",101,20.00,'2024-01-02'),(2333,"Sprite",102,20.00,'2024-02-01'),
+ (3436,"Maaza",103,40.00,'2024-02-02'),(3324,"Limca",104,25.00,'2024-05-03'),(3824,"Merinda",105,30.00,'2024-04-24');
+ select*from Coldrinks;
+
+-- Orders Table
+CREATE TABLE Orders (
+ order_id INT AUTO_INCREMENT PRIMARY KEY,customer_id INT NOT NULL,total_amount DECIMAL(10,2) NOT NULL,
+ order_date DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (customer_id) REFERENCES Customers(customer_id));
+ 
+ insert into   Orders values(1001,01,280.00,'2024-06-21'),(1002,02,459.00,'2024-04-13'),(1003,03,480.00,'2024-05-14')
+ ,(1004,04,759.00,'2024-06-20'),(1005,05,199.00,'2025-01-01');
+ select*from Orders;
+ 
+-- OrderDetails Table
+CREATE TABLE OrderDetails (
+ order_detail_id INT AUTO_INCREMENT PRIMARY KEY,order_id INT NOT NULL,Coldrink_id INT NOT NULL,quantity INT NOT NULL,
+ price DECIMAL(10,2) NOT NULL,
+ FOREIGN KEY (order_id) REFERENCES Orders(order_id),
+ FOREIGN KEY (Coldrink_id) REFERENCES Coldrinks(Coldrink_id));
+ 
+ insert into  OrderDetails values(12001,1001,2334,01,280.00),(12002,1005,3324,02,480.00),(12003,1004,2333,03,159.00)
+ ,(12004,1003,2334,04,380.00),(12005,1002,2333,05,459.00);
+ select *from OrderDetails ;
+ 
+ 
+-- Payments Table
+CREATE TABLE Payments (
+ payment_id INT AUTO_INCREMENT PRIMARY KEY,order_id INT NOT NULL,amount_paid DECIMAL(10,2) NOT NULL,
+ payment_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+ FOREIGN KEY (order_id) REFERENCES Orders(order_id));
+ 
+  insert into  Payments values(201,1001,180.00,'2025-03-21'),(202,1002,329.00,'2025-03-15'),
+ (203,1003,280.00,'2025-03-14'),(204,1004,359.00,'2025-03-14'),(205,1005,133.00,'2025-03-12');
+ select*from Payments ;
+
+-- 3. Queries
+-- Customer Management Queries
+SELECT * FROM Customers WHERE phone = '8695765864';
+UPDATE Customers SET address = '01#2-0 Rajampet' WHERE customer_id = 2;
+DELETE FROM Customers WHERE customer_id = 3 AND customer_id NOT IN
+ (SELECT customer_id FROM orders);
+ SELECT * FROM Customers WHERE customer_id NOT IN (SELECT customer_id FROM Orders);
+SELECT COUNT(*) AS Total_Customers FROM Customers;
+
+-- Supplier & Cooldinks Management Queries
+SELECT s.name AS Supplier, COUNT(Coldrink_id) AS Total_Coldrink FROM Suppliers s 
+LEFT JOIN Coldrinks c ON s.supplier_id = c.supplier_id GROUP BY s.name;
+
+SELECT * FROM  Coldrinks WHERE expiry_date < CURDATE();
+SELECT * FROM  Coldrinks WHERE supplier_id = 101;
+UPDATE  Coldrinks SET price =60.00 WHERE name = 'Bindhu';
+DELETE FROM Coldrinks WHERE Coldrink_id = 2334 AND Coldrink_id NOT IN (SELECT Coldrink_id FROM OrderDetails); 
+
+
+-- Order Management Queries
+SELECT o.order_id, c.name AS Customer, o.total_amount, o.order_date FROM Orders o
+JOIN Customers c ON o.customer_id = c.customer_id;
+SELECT m.name AS Coldrinks, od.quantity, od.price FROM OrderDetails od
+JOIN coldrinks m ON od.coldrink_id = m.coldrink_id WHERE od.order_id = 1001;
+
+SELECT DATE(order_date) AS OrderDate, SUM(total_amount) AS TotalSales FROM Orders
+GROUP BY DATE(order_date) ORDER BY OrderDate DESC;
+SELECT c.name AS Customer, COUNT(o.order_id) AS Total_Orders FROM Customers c
+LEFT JOIN Orders o ON c.customer_id = o.customer_id GROUP BY c.name;
+
+SELECT DATE_FORMAT(order_date, '%Y-%m') AS Month, COUNT(*) AS TotalOrders FROM Orders
+GROUP BY DATE_FORMAT(order_date, '%Y-%m');
+
+-- Payment Management Queries
+SELECT SUM(amount_paid) AS Total_Revenue FROM Payments;
+SELECT p.payment_id, p.amount_paid, p.payment_date FROM Payments p
+JOIN Orders o ON p.order_id = o.order_id WHERE o.customer_id = 01;
+
+SELECT o.order_id, o.total_amount FROM Orders o
+LEFT JOIN Payments p ON o.order_id = p.order_id WHERE p.payment_id IS NULL;
+SELECT c.name AS Customer, COUNT(p.payment_id) AS Total_Payments, SUM(p.amount_paid) AS Total_Amount FROM Payments p
+ JOIN Orders o ON p.order_id = o.order_id JOIN Customers c ON o.customer_id = c.customer_id GROUP BY c.name;
+ 
+
+-- Advanced Analytics Queries
+ SELECT m.name AS Coldrinks, SUM(od.quantity) AS Total_Quantity_Sold FROM OrderDetails od
+ JOIN Coldrinks m ON od.Coldrink_id = m.Coldrink_id GROUP BY m.name ORDER BY Total_Quantity_Sold DESC LIMIT 1;
+ SELECT c.name AS Customer, SUM(o.total_amount) AS Total_Spent FROM Orders o
+ JOIN Customers c ON o.customer_id = c.customer_id GROUP BY c.name ORDER BY Total_Spent DESC LIMIT 5;
+ SELECT m.name AS Coldrinks, SUM(od.quantity * od.price) AS Revenue FROM OrderDetails od
+ JOIN Coldrinks m ON od.Coldrink_id = m.Coldrink_id GROUP BY m.name ORDER BY Revenue DESC;
+ SELECT HOUR(order_date) AS Hour, COUNT(order_id) AS Orders FROM Orders
+ GROUP BY HOUR(order_date) ORDER BY Orders DESC;
+
+-- Performance Optimization Queries
+ CREATE INDEX idx_customer_id ON Orders(customer_id);
+ CREATE INDEX idx_Coldrink_id ON OrderDetails(Coldrink_id);
+ CREATE INDEX idx_payment_order ON Payments(order_id);
+ EXPLAIN SELECT * FROM Coldrinks WHERE expiry_date  < CURDATE();
+ CREATE VIEW TopColdrinks AS SELECT m.name, SUM(od.quantity) AS Total_Sold FROM OrderDetails od
+ JOIN Coldrinks m ON od.Coldrink_id = m.Coldrink_id GROUP BY m.name ORDER BY Total_Sold DESC;
+ SELECT * FROM TopColdrinks LIMIT 1;
